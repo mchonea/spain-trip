@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c4512d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spain 2026">
+<title>¡Vamos! Spain 2026</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf6ee; --card:#ffffff; --ink:#2b2118; --muted:#7a6a5a; --line:#eadfce;
+  --terra:#c4512d; --saffron:#e8a33d; --olive:#6b7a3a; --sea:#2f6f8f; --today:#fff1d6; --soft:#f5ede1;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#1b1612; --card:#26201a; --ink:#f3ebe0; --muted:#b3a393; --line:#3a3028; --today:#3a2e1e; --soft:#2f271f; }
+}
+:root[data-theme="dark"]{ --bg:#1b1612; --card:#26201a; --ink:#f3ebe0; --muted:#b3a393; --line:#3a3028; --today:#3a2e1e; --soft:#2f271f; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;font-size:15px}
+body{padding-bottom:env(safe-area-inset-bottom);overflow-x:hidden}
+button{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 10px;border-radius:999px;cursor:pointer;min-height:44px;touch-action:manipulation;line-height:1.15}
+button.primary{background:var(--terra);color:#fff;border-color:var(--terra)}
+a{color:var(--terra)}
+
+/* header */
+header{position:sticky;top:0;z-index:1100;background:linear-gradient(135deg,var(--terra),var(--saffron));color:#fff;
+  padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left))}
+header h1{font-family:Fraunces,serif;font-weight:800;font-size:22px;margin:0;letter-spacing:.3px}
+.clocks{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:3px;opacity:.95}
+
+/* status */
+.status{margin:12px 16px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.preview{display:none;align-items:center;justify-content:space-between;gap:10px;margin:-4px -4px 10px;padding:6px 6px 6px 10px;background:var(--today);border-radius:10px;font-size:13px;font-weight:600}
+.preview.on{display:flex}
+.preview button{min-height:36px;padding:6px 12px;font-size:12.5px}
+.lbl{font-family:Fraunces,serif;font-size:20px;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.sub{color:var(--muted);margin-top:4px}
+.bar{height:6px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden;display:none}
+.bar i{display:block;height:100%;background:var(--terra);width:0}
+.fact{margin-top:10px;padding:10px 12px;background:var(--today);border-radius:10px;font-size:14px;line-height:1.45}
+.fact small{display:block;color:var(--muted);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:11px}
+.fact .links{display:flex;gap:14px;margin-top:6px;font-size:13px;font-weight:600}
+.fact .links a{text-decoration:none;cursor:pointer}
+.next{margin-top:8px;font-size:13px;color:var(--muted)}
+
+/* map */
+#map{height:46vh;height:46dvh;min-height:300px;margin:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--soft)}
+.controls{margin:10px 16px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.legend{margin:10px 16px 0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:24px;height:4px;border-radius:3px;display:inline-block}
+.sw.fl{background:repeating-linear-gradient(90deg,var(--sea) 0 6px,transparent 6px 10px)}
+.sw.gr{background:var(--terra)}
+.sw.wk{background:repeating-linear-gradient(90deg,var(--olive) 0 3px,transparent 3px 7px)}
+.sw.dn{background:var(--terra);opacity:.25}
+
+/* lists */
+h2{font-family:Fraunces,serif;font-size:20px;margin:22px 16px 4px}
+.hint{margin:0 16px 10px;color:var(--muted);font-size:13px}
+.day{margin:0 16px 8px;padding:11px 13px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:pointer}
+.day.on{background:var(--today);border-color:var(--saffron)}
+.day.viewing{outline:2px solid var(--terra);outline-offset:-1px}
+.day .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.day .d{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.day .ttl{font-weight:600}
+.tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--terra);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
+.day ul{margin:6px 0 0;padding-left:18px;font-size:13.5px;line-height:1.45}
+.day .night{font-size:12px;color:var(--muted);margin-top:5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{min-height:34px;padding:5px 10px;font-size:12.5px;background:var(--soft);border-color:transparent}
+.day.past{padding:9px 13px;opacity:.72}
+.day.past .body{display:none}
+.day.past.open{opacity:1}
+.day.past.open .body{display:block}
+.day.past .ttl::before{content:"✓ ";color:var(--olive)}
+
+.learn{margin:0 16px 8px;padding:11px 13px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:52px}
+.learn.now{background:var(--today);border-color:var(--saffron)}
+.learn.done{opacity:.65}
+.learn b{display:block;font-weight:600}
+.learn small{color:var(--muted);font-size:12.5px}
+.learn .go{color:var(--terra);font-weight:700;font-size:18px}
+
+details.heads{margin:18px 16px 12px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+details.heads summary{font-weight:600;cursor:pointer;min-height:28px}
+details.heads li{margin:6px 0;font-size:13.5px;line-height:1.45}
+footer{margin:0 16px 40px;font-size:12px;color:var(--muted);line-height:1.5}
+
+/* map icons */
+.pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--terra);font-size:16px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.pin.hotel{border-color:var(--sea)}
+.pin.air{border-color:#888}
+.me{position:relative;width:44px;height:44px}
+.me .dot{position:absolute;inset:6px;border-radius:50%;background:var(--terra);border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,.4);z-index:2}
+.me .ring{position:absolute;inset:0;border-radius:50%;background:rgba(196,81,45,.35);animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--ink)}
+.leaflet-popup-content{font-family:Inter,system-ui,sans-serif;font-size:13.5px;line-height:1.45;margin:12px 14px;max-height:45vh;overflow-y:auto}
+.leaflet-container a.leaflet-popup-close-button{color:var(--muted);width:32px;height:32px;font-size:22px}
+.leaflet-touch .leaflet-bar a{width:36px;height:36px;line-height:36px}
+.pop h3{font-family:Fraunces,serif;margin:0 20px 4px 0;font-size:17px}
+.pop .when{font-size:12px;color:var(--muted);margin-bottom:6px}
+.pop p{margin:6px 0}
+.pop .tip{background:var(--today);padding:6px 8px;border-radius:8px;font-size:12.5px;margin-top:6px}
+.pop button{margin-top:8px;width:100%;min-height:40px;background:var(--terra);color:#fff;border-color:var(--terra)}
+
+/* reading panel */
+dialog{border:0;padding:0;border-radius:18px;width:min(94vw,680px);max-height:88vh;max-height:88dvh;background:var(--card);color:var(--ink);box-shadow:0 25px 70px rgba(0,0,0,.35);overflow:hidden}
+dialog::backdrop{background:rgba(20,14,8,.55)}
+.sheet{display:flex;flex-direction:column;max-height:inherit}
+.sheet .hd{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.sheet .eyebrow{color:var(--terra);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.sheet h2{margin:2px 0 0;font-size:24px}
+.sheet .x:focus:not(:focus-visible){outline:none}
+.sheet .x{flex:0 0 auto;width:44px;padding:0;font-size:22px;background:var(--soft);border-color:transparent}
+.sheet .bd{padding:14px 18px 6px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet .bd p{line-height:1.62;margin:0 0 14px;font-size:15.5px}
+.sheet h4{margin:16px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.sheet .bd ul{padding-left:18px;margin:0 0 10px}
+.sheet .bd li{margin:5px 0;line-height:1.5;font-size:14.5px}
+.sheet .tip{background:var(--today);padding:8px 10px;border-radius:10px;font-size:14px;margin:10px 0}
+.sheet .addr{font-size:13px;color:var(--muted);margin:10px 0 4px}
+.sheet .ft{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.sheet .ft a{display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:600;border-radius:999px;min-height:44px;background:var(--terra);color:#fff}
+
+@media (max-width:600px){
+  dialog{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:90vh;max-height:90dvh}
+}
+@media (max-width:360px){ header h1{font-size:20px} body{font-size:14px} .controls{grid-template-columns:repeat(2,1fr)} }
+@media (min-width:900px){
+  .wrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(330px,1fr);align-items:start}
+  .left{position:sticky;top:64px}
+  #map{height:calc(100vh - 420px);min-height:340px}
+  .right{max-height:calc(100vh - 70px);overflow-y:auto;padding-top:2px}
+  .controls{grid-template-columns:repeat(6,auto);justify-content:start}
+}
+@media (orientation:landscape) and (max-height:500px){
+  header{position:static}
+  #map{height:80vh;min-height:0}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>¡Vamos! Spain 2026</h1>
+  <div class="clocks" id="clocks"></div>
+</header>
+
+<main class="wrap">
+<div class="left">
+  <section class="status">
+    <div class="preview" id="preview"><span id="previewT"></span><button id="bBack">⏱ Back to live</button></div>
+    <div class="lbl" id="lbl">Locating…</div>
+    <div class="sub" id="sub"></div>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="fact" id="fact"></div>
+    <div class="next" id="next"></div>
+  </section>
+
+  <div id="map"></div>
+
+  <div class="controls">
+    <button class="primary" id="bLive">⏱ Live</button>
+    <button id="bMe">📍 Me</button>
+    <button id="bSpain">🇪🇸 Spain</button>
+    <button id="bRem">➡️ Remaining</button>
+    <button id="bAll">🌍 Whole trip</button>
+    <button id="bGps">🛰 GPS</button>
+  </div>
+  <div class="legend">
+    <span><i class="sw fl"></i>Flight</span>
+    <span><i class="sw gr"></i>Bus / train / taxi</span>
+    <span><i class="sw wk"></i>Walk</span>
+    <span><i class="sw dn"></i>Done</span>
+  </div>
+</div>
+
+<div class="right">
+  <h2>Day by day</h2>
+  <p class="hint">Tap a day to see it on the map. Finished days fold up.</p>
+  <div id="days"></div>
+
+  <h2>Learn along the way</h2>
+  <p class="hint">Longer reads for each stop. Today's are on top.</p>
+  <div id="learn"></div>
+
+  <details class="heads">
+    <summary>💡 Good to know</summary>
+    <ul>
+      <li><b>Pickpockets:</b> La Rambla, the Barcelona metro and Madrid's Sol area are the hot spots. Front pockets, zipped bags, phones off café tables.</li>
+      <li><b>Alhambra:</b> Nasrid Palace entry is strict to the minute and names on tickets are checked against ID. Bring passports and arrive early.</li>
+      <li><b>Park Güell:</b> the Monumental Zone (mosaic lizard, serpentine bench) needs a timed ticket; the rest of the park is free.</li>
+      <li><b>London overnight:</b> leaving Heathrow for a hotel means clearing UK border control. US citizens need a UK ETA, applied for online in advance.</li>
+      <li><b>Spanish hours:</b> lunch runs 2–4 PM and dinner rarely starts before 8:30–9 PM. Many small shops close mid-afternoon.</li>
+    </ul>
+  </details>
+  <footer>
+    The marker shows where the itinerary puts you based on your device's clock, not GPS. Road and trail lines are approximate corridors, not live tracking. Map tiles © Esri, © OpenStreetMap contributors.
+  </footer>
+</div>
+</main>
+
+<dialog id="guide">
+  <div class="sheet">
+    <div class="hd">
+      <div><div class="eyebrow" id="gPlace"></div><h2 id="gTitle"></h2></div>
+      <button class="x" id="gClose" aria-label="Close">×</button>
+    </div>
+    <div class="bd" id="gBody"></div>
+    <div class="ft">
+      <button id="gShow">🗺 Show on map</button>
+      <a id="gMaps" target="_blank" rel="noopener">📍 Open in Maps</a>
+    </div>
+  </div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const T = s => new Date(s).getTime();
+const ES = "Europe/Madrid", ET = "America/New_York", UK = "Europe/London";
+
+/* ---------------- Long-form guides ---------------- */
+const G = {
+ "BCN": {
+  "title": "Barcelona",
+  "place": "Catalonia",
+  "paragraphs": [
+   "Barcelona rewards attention because several historical cities occupy the same compact streets. Roman walls, medieval institutions, industrial wealth, and Modernisme remain unusually close together. The Gothic Quarter therefore works best when read as layers, not scenery.",
+   "Medieval Barcelona grew around political, religious, commercial, and maritime institutions clustered nearby. Later expansion pushed beyond old walls into the carefully planned Eixample district. That contrast explains why central Barcelona changes character within only several blocks.",
+   "Watch street widths, building materials, balconies, courtyards, and changes in ground level. Those small clues often reveal whether a street is medieval or nineteenth-century. Barcelona becomes more coherent when architecture is treated as accumulated civic evidence."
+  ]
+ },
+ "MUH": {
+  "title": "Barcelona History Museum (MUHBA)",
+  "place": "Barcelona",
+  "paragraphs": [
+   "The Barcelona History Museum sits on top of the city's origin story, literally. In the early 1930s a Gothic mansion, the Casa Padellàs, was taken apart and rebuilt stone by stone on this spot to clear the way for the new Via Laietana. Digging its new foundations exposed the streets of Roman Barcino. Rather than rebury them, the city built the museum over the excavation.",
+   "Below ground, raised walkways carry you across roughly 4,000 square metres of the Roman and late-antique city: a laundry and dye works, vats for fermenting garum fish sauce, a winery, and the remains of an early Christian church and bishop's complex. It shows Barcelona as a working provincial town that made and traded things, not just a stage set of monuments.",
+   "Back upstairs, Plaça del Rei was the heart of medieval royal Barcelona. The Saló del Tinell, a great hall spanned by enormous stone arches, and the Chapel of Santa Àgata face the square. Stand on the steps and look around: Roman foundations, a medieval palace and later additions stack up in one view, which is about the best short summary of the city you will find."
+  ]
+ },
+ "MON": {
+  "title": "Montserrat",
+  "place": "Catalonia",
+  "paragraphs": [
+   "Montserrat rises abruptly because erosion carved resistant conglomerate into serrated vertical formations. The unusual geology shaped both religious meaning and the monastery's dramatic physical setting. Approaching slowly makes the mountain feel intentionally separated from Barcelona's urban landscape.",
+   "Benedictine monks established a major spiritual center around the revered Virgin of Montserrat. The monastery later became closely associated with Catalan language, identity, and cultural continuity. That symbolism explains why Montserrat matters beyond architecture, scenery, or religious pilgrimage.",
+   "Notice how buildings occupy terraces rather than attempting to dominate the surrounding mountain. Views repeatedly frame rock formations, valleys, chapels, paths, and distant Catalan settlements. The landscape is therefore part of the site's meaning, not merely background."
+  ]
+ },
+ "PIC": {
+  "title": "Picasso Museum",
+  "place": "Barcelona",
+  "paragraphs": [
+   "Picasso's Barcelona years reveal technical discipline before his better-known stylistic experiments emerged. The collection is especially valuable because early works demonstrate formidable academic drawing skills. Seeing that competence changes how later distortions and simplifications should be interpreted.",
+   "Barcelona connected the young artist with cafés, publishers, intellectuals, and experimental artistic circles. Those relationships encouraged a shift from academic expectations toward increasingly personal visual languages. The museum therefore tells a developmental story rather than presenting isolated famous images.",
+   "Look closely at chronology, especially differences between student works and later paintings. Notice when anatomy, perspective, palette, and composition become increasingly deliberate expressive choices. The progression makes Picasso's later radicalism look calculated rather than technically necessary."
+  ]
+ },
+ "PED": {
+  "title": "La Pedrera — Casa Milà",
+  "place": "Barcelona",
+  "paragraphs": [
+   "Casa Milà challenged conventional apartment design through structure, circulation, ventilation, and sculptural form. Gaudí separated much structural support from traditional load-bearing exterior walls and partitions. That decision allowed unusually flexible interiors beneath the building's undulating stone facade.",
+   "The project also treated ordinary building systems as opportunities for integrated visual design. Courtyards bring daylight inward while roof structures disguise chimneys and ventilation infrastructure. Functional components consequently become part of the architecture's most memorable expressive language.",
+   "Watch how curves continue across railings, ceilings, walls, courtyards, and rooftop forms. Very few important surfaces behave like isolated decorations applied after structural decisions. The building feels coherent because utility and ornament repeatedly solve problems together."
+  ]
+ },
+ "MOD": {
+  "title": "Modernisme & the Block of Discord",
+  "place": "Barcelona",
+  "paragraphs": [
+   "Modernisme was Catalonia's version of Art Nouveau, flourishing from roughly the late 1880s to the 1910s. It was paid for by industrial fortunes and tied to a broader revival of Catalan language and culture. Passeig de Gràcia, the grand avenue of the newly planned Eixample, was where wealthy families competed in public through the fronts of their houses.",
+   "On a single block, three leading architects remodelled neighbouring houses within a few years of each other: Josep Puig i Cadafalch's Casa Amatller (1900), Antoni Gaudí's Casa Batlló (1904–06) and Lluís Domènech i Montaner's Casa Lleó Morera (1902–06). The nickname, Manzana de la Discordia, is a pun: manzana means both a city block and an apple, echoing the golden apple of discord from Greek myth.",
+   "Cross to the opposite pavement for the best comparison. Amatller's stepped, tiled gable borrows from Flemish town houses; Lleó Morera is all rounded corner, carved balconies and sculpture; Batlló's balconies look like masks or bones and its roof like a scaled back, often read as St George and the dragon. Same street, same era, three very different answers to the question of what a modern Catalan building should look like."
+  ]
+ },
+ "GUE": {
+  "title": "Park Güell",
+  "place": "Barcelona",
+  "paragraphs": [
+   "Park Güell began as a private residential development rather than a municipal park. Eusebi Güell commissioned Gaudí to create an ambitious hillside community outside central Barcelona. The commercial project failed, yet its public spaces became an architectural landmark.",
+   "Gaudí worked with steep terrain instead of leveling the site into conventional streets. Columns, viaducts, paths, drainage systems, and retaining walls adapt directly to topography. This approach makes movement through the park feel discovered rather than formally imposed.",
+   "Notice where stonework resembles geology and where colorful ceramics deliberately announce architecture. Also watch how framed viewpoints repeatedly reconnect hillside paths with distant Barcelona. Nature and construction are strongest here when neither element completely overwhelms another."
+  ]
+ },
+ "MAD": {
+  "title": "Madrid",
+  "place": "Central Spain",
+  "paragraphs": [
+   "Madrid's importance grew after the royal court established a permanent presence during 1561. Political centralization transformed an inland settlement into the administrative center of imperial Spain. Later boulevards, parks, museums, and infrastructure expanded that ceremonial capital considerably outward.",
+   "Central Madrid still reveals tensions between royal authority and intensely social public space. Palaces and ministries sit near plazas shaped by markets, cafés, demonstrations, and nightlife. That proximity gives the city a different rhythm from monumental capitals built later.",
+   "Compare broad ceremonial approaches with compressed streets surrounding Plaza Mayor and Puerta del Sol. Notice how important civic spaces remain functional gathering places rather than preserved exhibits. Madrid makes more sense when political architecture and everyday street life are compared."
+  ]
+ },
+ "RET": {
+  "title": "Retiro Park",
+  "place": "Madrid",
+  "paragraphs": [
+   "Buen Retiro means 'good retreat'. It was laid out in the 1630s as the gardens of a royal palace complex for Philip IV, built by his powerful minister, the Count-Duke of Olivares. Most of the palace was wrecked during the Napoleonic wars, but the gardens survived, and in 1868 they became a public park.",
+   "The Great Pond, watched over by the colonnaded monument to King Alfonso XII, is the social centre: rowboats, buskers and Madrid families on a Sunday. Further in, the Palacio de Cristal, an iron-and-glass pavilion built in 1887 for an exhibition on the Philippines, now hosts contemporary art installations from the Reina Sofía museum. In 2021 the park and the neighbouring Paseo del Prado became a UNESCO World Heritage site.",
+   "Look for Ricardo Bellver's statue of the Fallen Angel, one of the few public monuments to Lucifer anywhere; the Rosaleda rose garden, which can still be in bloom in early October; and the Bosque del Recuerdo, a quiet grove of olive and cypress trees planted in memory of the victims of the 2004 Madrid train bombings. The park works best as a slow walk rather than a checklist."
+  ]
+ },
+ "PAL": {
+  "title": "Royal Palace",
+  "place": "Madrid",
+  "paragraphs": [
+   "The Royal Palace replaced Madrid's earlier Alcázar after a devastating eighteenth-century fire. Bourbon rulers wanted architecture capable of projecting dynastic stability, ceremony, and European sophistication. Its scale therefore communicates political purpose before visitors examine individual rooms closely.",
+   "Successive interiors combine architecture, painting, furniture, textiles, clocks, porcelain, and decorative arts. These objects were coordinated to stage hierarchy through carefully controlled ceremonial movement. Rooms mattered because audiences with monarchs followed rules about proximity and access.",
+   "Notice how ceiling paintings expand rooms upward while mirrors multiply light and ornament. Also compare public ceremonial rooms with spaces designed for more private royal routines. The palace becomes clearer when viewed as political theater organized through architecture."
+  ]
+ },
+ "PRA": {
+  "title": "Museo del Prado",
+  "place": "Madrid",
+  "paragraphs": [
+   "The Prado grew from Spain's royal collections rather than a comprehensive encyclopedic museum. That origin explains exceptional concentrations of artists favored by Spanish monarchs and courts. Velázquez, Goya, Rubens, Titian, and Bosch therefore appear with unusual depth here.",
+   "Royal patronage also reveals how paintings communicated dynasty, religion, diplomacy, taste, and power. Portraits often contain subtle information about rank, expectation, vulnerability, and political presentation. Religious paintings similarly reward attention to gesture, lighting, scale, and intended viewing distance.",
+   "Resist trying to cover every gallery during a single afternoon visit. Choose several artists, then compare multiple works before moving toward another painter. Depth usually produces more understanding here than simply accumulating famous masterpieces."
+  ]
+ },
+ "GRA": {
+  "title": "Granada",
+  "place": "Andalusia",
+  "paragraphs": [
+   "Granada preserves unusually visible evidence from the final Islamic kingdom in Iberia. The Nasrid dynasty ruled here while Christian kingdoms expanded elsewhere across the peninsula. That frontier history shaped architecture, diplomacy, agriculture, trade, and defensive urban form.",
+   "The Catholic Monarchs captured Granada in 1492, transforming institutions and religious life afterward. Muslim and Jewish communities then faced increasing pressure, conversion mandates, displacement, and expulsion. Granada's beauty therefore sits beside major historical rupture and contested cultural memory.",
+   "Look across the Darro valley between Alhambra heights and the Albaicín opposite. The geography explains defensive advantages while also creating extraordinary framed views between neighborhoods. Understanding the hills makes Granada's political history easier to see physically."
+  ]
+ },
+ "ALH": {
+  "title": "The Alhambra",
+  "place": "Granada",
+  "paragraphs": [
+   "The Alhambra developed as a fortified Nasrid palace-city above medieval Granada's urban center. Rulers combined residences, administration, defense, gardens, workshops, and ceremonial spaces within walls. Its refinement depends less on size than carefully controlled sequence and perception.",
+   "Water organizes sound, temperature, reflection, movement, agriculture, and symbolism throughout the complex. Calligraphy, geometry, plasterwork, tile, timber, and light create surfaces that continually change. Many rooms become impressive only after visitors understand their intended approaches and sightlines.",
+   "Notice repeated transitions from dark passages into bright courtyards containing water and sky. Also watch how windows deliberately frame Granada, gardens, mountains, and neighboring architecture. The site rewards slow movement because changing viewpoints are fundamental architectural components."
+  ]
+ },
+ "RON": {
+  "title": "Ronda",
+  "place": "Andalusia",
+  "paragraphs": [
+   "Ronda occupies a defensible plateau divided dramatically by the deep Guadalevín River gorge. That geography shaped settlement, movement, military value, agriculture, and later tourist fascination. The famous bridge matters largely because the gorge created such an extraordinary obstacle.",
+   "Islamic Ronda formed part of shifting Andalusian political territories before Christian conquest during 1485. Later centuries added churches, aristocratic houses, bullfighting traditions, rail connections, and romantic mythology. Writers and travelers helped transform geographic isolation into a powerful cultural image.",
+   "Walk beyond the bridge and study how streets respond to cliffs and slopes. Views from lower paths reveal engineering and topography better than bridge-level photographs alone. Ronda becomes more interesting when spectacle is connected back to geography."
+  ]
+ },
+ "GUITAR": {
+  "title": "Ronda Guitar House",
+  "place": "Ronda",
+  "paragraphs": [
+   "Spanish guitar traditions connect courtly, classical, popular, regional, and flamenco musical worlds. Ronda Guitar House presents those connections through performance rather than static display alone. The small setting makes changes in articulation, rhythm, resonance, and technique unusually perceptible.",
+   "Modern flamenco guitar developed alongside singing and dance while becoming increasingly virtuosic independently. Classical Spanish repertoire follows different conventions, though instruments and techniques frequently overlap. Listening for those differences makes stylistic labels more useful during the concert.",
+   "Watch the right hand because tone changes dramatically through attack location and technique. Also notice rhythmic emphasis, silence, ornament, and dynamic contrast between musical sections. Live proximity makes physical technique easier to understand than recordings usually allow."
+  ]
+ },
+ "SEV": {
+  "title": "Sevilla",
+  "place": "Andalusia",
+  "paragraphs": [
+   "Sevilla's history reflects Roman, Islamic, Christian, imperial, commercial, and modern urban layers. The Guadalquivir River connected the inland city directly with Atlantic maritime trade networks. That geographic advantage became especially consequential after Spanish expansion into the Americas.",
+   "Imperial trade brought wealth, bureaucracy, migrants, religious institutions, artists, and global commodities here. Later river changes and commercial shifts reduced Sevilla's earlier monopoly and economic dominance. The surviving monumental core nevertheless preserves evidence of that extraordinary historical concentration.",
+   "Compare cathedral scale, Alcázar intimacy, narrow Santa Cruz streets, and broad riverfront spaces. Each environment expresses a different relationship among movement, authority, climate, and public life. Sevilla rewards comparisons because adjacent places often belong to very different eras."
+  ]
+ },
+ "CAT": {
+  "title": "Sevilla Cathedral & the Giralda",
+  "place": "Sevilla",
+  "paragraphs": [
+   "When Castile took Sevilla in 1248, the city's great Almohad mosque was turned into its cathedral. In the early 1400s the canons decided to replace it with a church, as the traditional line has it, so large that those who saw it would think its builders mad. The result, finished in the early 1500s, is the largest Gothic cathedral in the world, and a UNESCO site together with the Alcázar and the Archive of the Indies.",
+   "The Giralda bell tower began as the mosque's minaret, built between 1184 and 1198 with lace-like brick panels typical of Almohad design. In 1568 the architect Hernán Ruiz added the Renaissance belfry, topped by the bronze weathervane called the Giraldillo; giralda means 'something that turns'. Inside, the climb is by some 35 ramps rather than stairs, reputedly so a rider could go up on horseback.",
+   "Look for the Patio de los Naranjos, the orange-tree courtyard that was the mosque's ablution court, and the vast gilded main altarpiece by Pierre Dancart, one of the largest in Christendom. Near the south door, four figures representing the kingdoms of Castile, León, Aragón and Navarra carry the tomb of Christopher Columbus; DNA studies have supported the claim that the remains are his."
+  ]
+ },
+ "FLA": {
+  "title": "Flamenco",
+  "place": "Andalusia",
+  "paragraphs": [
+   "Flamenco combines singing, guitar, rhythm, movement, improvisation, and intense performer communication. Its history developed through Andalusian communities including important Gitano contributions and traditions. Simple origin stories are tempting, but flamenco emerged through extended cultural interaction.",
+   "Traditional performance depends heavily on compás, the repeating rhythmic framework organizing musical relationships. Performers signal changes through sound, gesture, breath, posture, and accumulated stylistic knowledge. That communication explains why strong performances can feel spontaneous while remaining tightly structured.",
+   "Watch interactions rather than focusing only on the dancer during dramatic passages. Notice clapping patterns, guitar accents, vocal entries, pauses, and responses between performers. The ensemble becomes easier to understand when rhythm is treated as conversation."
+  ]
+ },
+ "ALC": {
+  "title": "Real Alcázar",
+  "place": "Sevilla",
+  "paragraphs": [
+   "Sevilla's Alcázar demonstrates cultural continuity more clearly than simple conquest narratives suggest. Christian rulers expanded earlier Islamic palace spaces while employing Mudéjar craftsmen and aesthetics. The resulting complex deliberately combines political traditions that modern categories often separate.",
+   "Pedro I's fourteenth-century palace uses Arabic inscriptions, geometric ornament, courtyards, and intricate plasterwork. Those choices served a Christian monarch while drawing prestige from Andalusi visual culture. Later rulers added Gothic, Renaissance, Baroque, and landscape elements without erasing everything earlier.",
+   "Look for changes in ceiling structure, tile patterns, arches, inscriptions, and garden organization. Then compare those details with the Alhambra you visited several days earlier. The relationship reveals influence, competition, memory, and adaptation across changing political regimes."
+  ]
+ },
+ "ALA": {
+  "title": "Alájar and Sierra de Aracena",
+  "place": "Huelva",
+  "paragraphs": [
+   "The Sierra de Aracena presents a greener Andalusian landscape than many visitors expect. Holm oaks, cork oaks, chestnuts, livestock, streams, and villages shape local scenery. Human land use and ecological systems have developed together across centuries here.",
+   "Small settlements remain connected through historic paths that once supported everyday regional movement. Walking therefore reveals relationships between agriculture, water, topography, and settlement more clearly. Alájar provides a useful base because several traditional routes converge nearby.",
+   "Watch stone walls, orchard boundaries, livestock areas, springs, and changing tree species. Those details explain how seemingly natural scenery has been actively managed. The slower walking days provide valuable contrast after Spain's major monumental cities."
+  ]
+ },
+ "ARI": {
+  "title": "Peña de Arias Montano",
+  "place": "Alájar · Sierra de Aracena",
+  "paragraphs": [
+   "The Peña is a limestone crag rising above Alájar, riddled with springs and small caves. It has been a holy place for centuries, and the hermitage of Nuestra Señora de los Ángeles sits on top. The village's pilgrimage festival to the hermitage in early September is one of the biggest events of the year in the Sierra.",
+   "The rock takes its name from Benito Arias Montano (1527–1598), a humanist scholar and theologian who supervised the great Antwerp Polyglot Bible for Philip II and later helped organise the royal library at El Escorial. He retreated here to study and write, and local tradition says the king himself came to visit; a rock seat on the edge of the crag is still called the Silla del Rey, the King's Chair.",
+   "From the viewpoint you can read the whole landscape of the Sierra at once: chestnut groves, cork and holm oak dehesa, stone-walled terraces and whitewashed villages linked by old mule paths. It is a good place to orient yourself on the first day, because the walks later in the week run through exactly the country you are looking at."
+  ]
+ },
+ "ALM": {
+  "title": "Almonaster la Real",
+  "place": "Sierra de Aracena",
+  "paragraphs": [
+   "Almonaster la Real is especially notable for its hilltop mosque and layered archaeology. The building incorporates reused Roman and Visigothic materials within an Islamic religious structure. After Christian conquest, the mosque was adapted for worship rather than demolished entirely.",
+   "That continuity makes the site unusually useful for understanding Iberian architectural reuse. Columns, capitals, masonry, orientation, and later additions record several historical periods together. The surrounding fortifications also reveal why the elevated position mattered strategically.",
+   "Look closely for materials that clearly originated in earlier buildings or traditions. Then compare this modest structure with monumental Islamic architecture already seen in Granada. Scale differs dramatically, but adaptation and cultural layering remain equally important themes."
+  ]
+ }
+};
+const GUIDE_AT = {BCN:"gotic",MUH:"muhba",MON:"montserrat",PIC:"picasso",PED:"pedrera",MOD:"batllo",GUE:"guell",MAD:"sol",RET:"retiro",
+  PAL:"palacio",PRA:"prado",GRA:"sannicolas",ALH:"alhambra",RON:"puente",GUITAR:"guitar",SEV:"catedral",CAT:"catedral",FLA:"flamenco",
+  ALC:"alcazar",ALA:"posada",ARI:"arias",ALM:"almonaster"};
+
+/* ---------------- Places ---------------- */
+const P = {
+  rdu:{n:"Raleigh–Durham (RDU)",ic:"🏠",k:"air",lat:35.8776,lng:-78.7875,tz:ET,a:"Raleigh–Durham International Airport, NC",
+    f:["Trip starts and ends here. Passports, chargers, paper tickets — check, check, check."]},
+  phl:{n:"Philadelphia (PHL)",ic:"🛫",k:"air",lat:39.8744,lng:-75.2424,tz:ET,a:"Philadelphia International Airport, PA",
+    f:["About a three-hour connection. PHL is American's main East Coast gateway to Europe.","Last chance for a cheesesteak before three weeks of jamón."]},
+  bcnAir:{n:"Barcelona–El Prat (BCN)",ic:"🛬",k:"air",lat:41.2974,lng:2.0833,a:"Barcelona–El Prat Airport",g:"BCN",
+    f:["Named for El Prat de Llobregat, the town on the river delta where it sits.","The Aerobús or a taxi to Plaça de Catalunya takes about 30–35 minutes."]},
+  jazz:{n:"Hotel Jazz",ic:"🏨",k:"hotel",lat:41.3861,lng:2.1659,a:"Carrer de Pelai 3, 08001 Barcelona",g:"BCN",
+    f:["Steps from Plaça de Catalunya — the hinge between the medieval old town and the grid-planned Eixample.","The Eixample's cut-off corners (chaflanes) come from Ildefons Cerdà's 1859 plan, so carts could turn and light could reach the street."]},
+  gotic:{n:"Barri Gòtic",ic:"🏰",k:"sight",lat:41.3839,lng:2.1763,a:"Gothic Quarter, Barcelona",g:"BCN",
+    f:["This is where Barcelona began: the Roman colony of Barcino, founded around 15–10 BC. Bits of its walls still poke out between later buildings.","A lot of the 'Gothic' look is younger than it seems — the cathedral's showpiece façade and the Pont del Bisbe bridge are 19th–20th-century neo-Gothic.","Find the hidden columns of the Roman Temple of Augustus inside a courtyard on Carrer del Paradís."],
+    tip:"Narrow lanes = pickpocket heaven. Front pockets, zipped bags."},
+  muhba:{n:"Barcelona History Museum (MUHBA)",ic:"🏛️",k:"sight",lat:41.3842,lng:2.1772,a:"Plaça del Rei, 08002 Barcelona",g:"MUH",
+    f:["An elevator takes you down to walkways over roughly 4,000 m² of excavated Roman streets — a laundry, a garum fish-sauce works and a winery.","Upstairs is Plaça del Rei and the medieval royal palace, where tradition says Ferdinand and Isabella received Columbus after his first voyage."],
+    tip:"Allow 1.5–2 hours."},
+  montserrat:{n:"Montserrat",ic:"🏔️",k:"sight",lat:41.5932,lng:1.8370,a:"Monestir de Montserrat, 08199 Monistrol de Montserrat",g:"MON",
+    f:["The name means 'serrated mountain' — the pink rock pinnacles look like a saw blade from the valley.","The Benedictine monastery dates to 1025 and houses La Moreneta, the Black Madonna, patron saint of Catalonia.","The Escolania boys' choir is one of Europe's oldest, documented since the 1300s. It usually sings a short midday set on weekdays."],
+    tip:"Colder and windier up top — bring a layer."},
+  picasso:{n:"Museu Picasso",ic:"🎨",k:"sight",lat:41.3852,lng:2.1809,a:"Carrer de Montcada 15–23, 08003 Barcelona",g:"PIC",
+    f:["Opened in 1963 across five connected medieval palaces on Carrer de Montcada.","Its strength is young Picasso: you watch an academically brilliant teenager turn into Picasso.","Highlight: his 1957 series riffing on Velázquez's Las Meninas. You'll see the original at the Prado on Oct 5."],
+    tip:"Timed entry 10:00 AM."},
+  rambla:{n:"La Rambla",ic:"🌳",k:"sight",lat:41.3809,lng:2.1735,a:"La Rambla, Barcelona",g:"BCN",
+    f:["'Rambla' comes from the Arabic ramla, a sandy seasonal riverbed — the boulevard follows an old stream outside the medieval wall.","Look down at Pla de l'Os: there's a Joan Miró mosaic in the pavement most people walk right over.","La Boqueria market is on the west side. Push past the juice stands at the entrance to the real stalls."],
+    tip:"The city's top pickpocket zone."},
+  raval:{n:"El Raval",ic:"🏙️",k:"sight",lat:41.3797,lng:2.1682,a:"El Raval, Barcelona",g:"BCN",
+    f:["Once outside the walls, El Raval held hospitals, convents and later factory workers — historically one of the densest neighborhoods in Europe.","Gaudí's Palau Güell (late 1880s) is here — an early commission from Eusebi Güell, the same patron as Park Güell.","The white MACBA museum plaza doubles as the city's skateboard stage."]},
+  pedrera:{n:"La Pedrera (Casa Milà)",ic:"🌊",k:"sight",lat:41.3953,lng:2.1619,a:"Passeig de Gràcia 92, 08008 Barcelona",g:"PED",
+    f:["Built 1906–1912, Gaudí's last private residential building. Locals mocked it as 'the stone quarry' — and the nickname stuck.","No load-bearing interior walls: stone pillars and iron beams carry the weight, so every floor plan could be different.","The rooftop chimneys look like helmeted warriors. UNESCO World Heritage since 1984."],
+    tip:"Timed entry 9:00 AM."},
+  batllo:{n:"Block of Discord",ic:"🐉",k:"sight",lat:41.3916,lng:2.1649,a:"Passeig de Gràcia 35–43, Barcelona",g:"MOD",
+    f:["Three rival Modernista architects on one block: Gaudí (Casa Batlló), Puig i Cadafalch (Casa Amatller) and Domènech i Montaner (Casa Lleó Morera).","The name is a pun: 'manzana' means both city block and apple — the apple of discord from Greek myth.","Casa Batlló's roof is often read as a dragon's scaly back, with the cross-topped turret as St. George's lance."]},
+  guell:{n:"Park Güell",ic:"🦎",k:"sight",lat:41.4141,lng:2.1524,a:"Carrer d'Olot 5, 08024 Barcelona",g:"GUE",
+    f:["Planned as a luxury housing estate with about 60 plots. Only two houses were built; it became a public park in 1926.","The mosaic lizard and serpentine bench use trencadís — broken tile shards. Much of the bench is by Gaudí's collaborator Josep Maria Jujol.","Gaudí himself lived here for nearly 20 years; his house is now a small museum."],
+    tip:"The Monumental Zone needs a timed ticket."},
+  moderno:{n:"Hotel Moderno",ic:"🏨",k:"hotel",lat:40.4169,lng:-3.7046,a:"Calle del Arenal 2, 28013 Madrid",g:"MAD",
+    f:["Right off Puerta del Sol — about as central as Madrid gets.","Madrid became the permanent seat of the royal court in 1561 under Philip II, helped by its spot near the center of Spain."]},
+  sol:{n:"Puerta del Sol",ic:"☀️",k:"sight",lat:40.4169,lng:-3.7035,a:"Puerta del Sol, Madrid",g:"MAD",
+    f:["A plaque outside the old Post Office marks Kilómetro Cero, the point Spain's national roads are measured from.","That building's clock is the one all of Spain watches on New Year's Eve, eating 12 grapes on the 12 chimes.","The Bear and the Strawberry Tree statue is Madrid's coat of arms in bronze."]},
+  mayor:{n:"Plaza Mayor",ic:"🏛️",k:"sight",lat:40.4155,lng:-3.7074,a:"Plaza Mayor, Madrid",g:"MAD",
+    f:["Completed in 1619 under Philip III — he's the one on the horse.","It hosted markets, bullfights, royal ceremonies and Inquisition trials. Today's look is largely Juan de Villanueva's rebuild after a 1790 fire.","Local move: a bocadillo de calamares — a fried-squid sandwich — from a bar just off the square."]},
+  retiro:{n:"Retiro Park",ic:"🌳",k:"sight",lat:40.4153,lng:-3.6845,a:"Parque del Buen Retiro, Madrid",g:"RET",
+    f:["A 1630s royal retreat for Philip IV, opened to the public in 1868.","The glass Palacio de Cristal (1887) was built to show plants at an exhibition on the Philippines.","One statue depicts the Fallen Angel — Lucifer — one of very few public monuments to the devil anywhere."]},
+  palacio:{n:"Royal Palace",ic:"👑",k:"sight",lat:40.4180,lng:-3.7143,a:"Calle de Bailén s/n, 28071 Madrid",g:"PAL",
+    f:["Built after the old Alcázar fortress burned down on Christmas Eve 1734.","About 3,400 rooms — the largest royal palace in Western Europe by floor area.","It's the King's official residence, but the royal family lives at the smaller Zarzuela Palace outside town.","Look up in the Throne Room: the ceiling fresco is by Giambattista Tiepolo."],
+    tip:"Timed entry 10:00 AM. The palace can close at short notice for state events."},
+  prado:{n:"Museo del Prado",ic:"🖼️",k:"sight",lat:40.4139,lng:-3.6922,a:"Paseo del Prado s/n, 28014 Madrid",g:"PRA",
+    f:["Opened in 1819 in a building Juan de Villanueva originally designed as a natural-history museum.","Don't miss Velázquez's Las Meninas, Goya's Black Paintings and Bosch's Garden of Earthly Delights.","You saw Picasso's Las Meninas variations in Barcelona — now stand in front of the painting he was arguing with."],
+    tip:"Timed entry 1:30 PM."},
+  anacapri:{n:"Hotel Anacapri",ic:"🏨",k:"hotel",lat:37.1765,lng:-3.5974,a:"Calle Joaquín Costa 7, 18010 Granada",g:"GRA",
+    f:["Central Granada, walkable to the cathedral and the Albaicín.","Granada is one of the last places where a free tapa routinely comes with every drink."]},
+  sannicolas:{n:"Mirador de San Nicolás",ic:"🌅",k:"sight",lat:37.1811,lng:-3.5926,a:"Mirador de San Nicolás, Albaicín, Granada",g:"GRA",
+    f:["In the Albaicín, Granada's old Moorish quarter — itself part of the Alhambra's UNESCO listing.","At sunset the Alhambra glows red against the Sierra Nevada. Fitting: the name comes from the Arabic for 'the red one'.","The climb is steep and cobbled; small city minibuses run up when legs are done."]},
+  alhambra:{n:"The Alhambra",ic:"🕌",k:"sight",lat:37.1767,lng:-3.5897,a:"Calle Real de la Alhambra s/n, 18009 Granada",g:"ALH",
+    f:["Palace-city of the Nasrid dynasty, mostly 13th–14th century — the last Muslim kingdom in Iberia.","On Jan 2, 1492, Boabdil surrendered Granada to Ferdinand and Isabella — the same year they backed Columbus.","Charles V later dropped a Renaissance palace into the middle of it: square outside, perfect circle inside.","One phrase repeats across the palace walls thousands of times: 'There is no victor but God.'"],
+    tip:"Timed entry 2:30 PM. Nasrid Palace slots are strict to the minute — bring passports."},
+  sohoronda:{n:"Palacio San Gabriel",ic:"🏨",k:"hotel",lat:36.7385,lng:-5.1655,a:"Calle Marqués de Moctezuma 19, 29400 Ronda",g:"RON",
+    f:["You're sleeping in La Ciudad, Ronda's old Moorish quarter on the south side of the gorge."]},
+  puente:{n:"Puente Nuevo",ic:"🌉",k:"sight",lat:36.7406,lng:-5.1658,a:"Puente Nuevo, Ronda",g:"RON",
+    f:["Finished in 1793 after about 40 years of work, it spans the El Tajo gorge nearly 100 m (330 ft) above the Guadalevín River.","It links the Moorish quarter (La Ciudad) with the newer Mercadillo quarter.","Ronda's 1785 bullring is one of Spain's oldest; the local Romero family helped define bullfighting on foot.","Hemingway and Orson Welles both loved Ronda — Welles' ashes are buried on an estate nearby."]},
+  desfiladero:{n:"Desfiladero del Tajo trail",ic:"🥾",k:"sight",lat:36.7384,lng:-5.1680,a:"Trailhead at the end of Plaza de María Auxiliadora, Ronda",g:"RON",
+    f:["A route down into the gorge beneath the bridges — the view of Puente Nuevo from below that most visitors never get.","The Guadalevín River has been cutting this slot for millions of years."],
+    tip:"Timed entry 4:00 PM. Wear shoes with grip."},
+  guitar:{n:"Ronda Guitar House",ic:"🎸",k:"sight",lat:36.7428,lng:-5.1644,a:"Calle Virgen de los Remedios 23, 29400 Ronda",g:"GUITAR",
+    f:["An intimate room for Spanish and flamenco guitar.","Andalusia is flamenco's home. The guitar went from accompanist to solo star in the 20th century, most famously through Paco de Lucía."],
+    tip:"Concert 7:00 PM."},
+  donamaria:{n:"Hotel Doña María",ic:"🏨",k:"hotel",lat:37.3864,lng:-5.9917,a:"Calle Don Remondo 19, 41004 Sevilla",g:"SEV",
+    f:["Practically touching the cathedral — the rooftop looks straight at the Giralda tower."]},
+  catedral:{n:"Sevilla Cathedral & Giralda",ic:"⛪",k:"sight",lat:37.3858,lng:-5.9931,a:"Avenida de la Constitución s/n, 41004 Sevilla",g:"CAT",
+    f:["The largest Gothic cathedral in the world, built on the site of the city's great mosque.","The Giralda bell tower began as the mosque's 12th-century minaret. Inside are ramps instead of stairs.","A monumental tomb holds remains attributed to Christopher Columbus; DNA testing supports the claim."],
+    tip:"Not on the itinerary, but it's next door to the hotel."},
+  flamenco:{n:"La Casa del Flamenco",ic:"💃",k:"sight",lat:37.3863,lng:-5.9887,a:"Calle Ximénez de Enciso 28, 41004 Sevilla",g:"FLA",
+    f:["Shows happen in the courtyard of a 15th-century house in the Santa Cruz quarter.","UNESCO added flamenco to its Intangible Cultural Heritage list in 2010.","Listen to the palmas (hand-clapping): it's rhythm, not applause, and some styles cycle in 12 beats."],
+    tip:"Shows at 7:00 and 8:30 PM. Book ahead."},
+  alcazar:{n:"Real Alcázar",ic:"🌿",k:"sight",lat:37.3844,lng:-5.9912,a:"Patio de Banderas s/n, 41004 Sevilla",g:"ALC",
+    f:["Began as a Moorish fortress; Pedro I rebuilt much of it in the 1360s with Muslim craftsmen — the Mudéjar style.","The upper floors are still used by the Spanish royal family, making it Europe's oldest royal palace still in use.","UNESCO-listed since 1987, together with the Cathedral and the Archive of the Indies."],
+    tip:"Timed entry 9:30 AM."},
+  posada:{n:"Posada San Marcos, Alájar",ic:"🏡",k:"hotel",lat:37.8729,lng:-6.6641,a:"Calle Colón 12, 21340 Alájar, Huelva",g:"ALA",
+    f:["You're in the Sierra de Aracena y Picos de Aroche Natural Park — cork oak and chestnut country.","This is jamón ibérico heartland: black Iberian pigs fatten on acorns in the dehesa. Jabugo, the most famous ham village, is a short drive away."]},
+  arias:{n:"Peña de Arias Montano",ic:"⛰️",k:"sight",lat:37.8717,lng:-6.6590,a:"Peña de Arias Montano, Alájar",g:"ARI",
+    f:["A rocky outcrop above Alájar named for Benito Arias Montano, the 16th-century scholar who edited the Antwerp Polyglot Bible for Philip II.","Tradition says Philip II came to visit him here. The hermitage viewpoint takes in the whole valley."],
+    tip:"Guided walk 2:00 PM."},
+  almonaster:{n:"Almonaster la Real",ic:"🕌",k:"sight",lat:37.8729,lng:-6.7878,a:"Almonaster la Real, Huelva",g:"ALM",
+    f:["On the castle hill is a 10th-century mosque — one of the best-preserved rural mosques in Spain, later used as a church.","Right beside it, a bullring is built into the castle walls.","The name comes from the Arabic al-munastir — 'the monastery'."]},
+  cortelazor:{n:"Cortelazor",ic:"🌰",k:"sight",lat:37.9360,lng:-6.6230,a:"Cortelazor, Huelva",g:"ALA",
+    f:["A tiny whitewashed village surrounded by chestnut groves. The chestnut harvest starts around mid-October — you may see it beginning."]},
+  linares:{n:"Linares de la Sierra",ic:"🪨",k:"sight",lat:37.8797,lng:-6.6228,a:"Linares de la Sierra, Huelva",g:"ALA",
+    f:["Known for its 'llanos' — pebble mosaics set into the ground at house doorways, each one different.","One of the smallest villages in the park, and one of the prettiest."]},
+  svq:{n:"Sevilla Airport (SVQ)",ic:"🛫",k:"air",lat:37.4180,lng:-5.8931,a:"Sevilla Airport",
+    f:["Short hop to London Heathrow, departing 12:30 PM."]},
+  lhrHotel:{n:"Heathrow airport hotel",ic:"🏨",k:"hotel",lat:51.4684,lng:-0.4189,tz:UK,a:"Hatton Cross, Heathrow",
+    f:["One night in London. You clear UK border control on arrival — US citizens need a UK ETA."]},
+  lhr:{n:"London Heathrow (LHR)",ic:"🛫",k:"air",lat:51.4700,lng:-0.4543,tz:UK,a:"London Heathrow Airport",
+    f:["Flight home at 12:00 PM, landing in Raleigh at 3:45 PM."]}
+};
+for (const k in P){ P[k].id=k; if(!P[k].tz) P[k].tz=ES; }
+
+/* ---------------- Approximate road & trail corridors ---------------- */
+const pt=(lat,lng)=>({lat,lng});
+const RS = {
+  bcn_mon:["jazz",pt(41.402,2.124),pt(41.430,2.072),pt(41.474,1.987),pt(41.545,1.880),pt(41.581,1.835),"montserrat"],
+  bcn_mad:["jazz",pt(41.430,2.055),pt(41.575,1.620),pt(41.617,0.620),pt(41.650,-0.880),pt(41.350,-1.640),pt(40.630,-3.160),pt(40.490,-3.360),"moderno"],
+  mad_gra:["moderno",pt(40.030,-3.600),pt(39.960,-3.500),pt(38.990,-3.370),pt(38.100,-3.770),pt(37.780,-3.790),pt(37.390,-3.640),"anacapri"],
+  gra_ron:["anacapri",pt(37.170,-4.150),pt(37.020,-4.560),pt(37.050,-4.860),pt(36.875,-5.045),"sohoronda"],
+  ron_sev:["sohoronda",pt(36.880,-5.405),pt(36.995,-5.570),pt(37.185,-5.780),pt(37.315,-5.920),"donamaria"],
+  sev_ala:["donamaria",pt(37.445,-6.015),pt(37.650,-6.080),pt(37.820,-6.210),pt(37.835,-6.445),pt(37.895,-6.560),"posada"],
+  ala_alm:["posada",pt(37.883,-6.705),pt(37.884,-6.755),"almonaster"],
+  ala_cor:["posada",pt(37.895,-6.650),pt(37.913,-6.638),"cortelazor"],
+  cor_ala:["cortelazor",pt(37.920,-6.640),pt(37.900,-6.650),"posada"],
+  ala_lin:["posada",pt(37.875,-6.650),pt(37.878,-6.636),"linares"],
+  ala_svq:["posada",pt(37.895,-6.560),pt(37.835,-6.445),pt(37.820,-6.210),pt(37.650,-6.080),pt(37.445,-6.015),pt(37.400,-5.965),"svq"]
+};
+for (const k in RS) RS[k]=RS[k].map(p=>typeof p==="string"?{lat:P[p].lat,lng:P[p].lng}:p);
+RS.mon_bcn=[...RS.bcn_mon].reverse(); RS.alm_ala=[...RS.ala_alm].reverse(); RS.lin_ala=[...RS.ala_lin].reverse();
+
+/* ---------------- Timeline ---------------- */
+const at = (s,e,p,l)=>({s:T(s),e:T(e),at:p,l});
+const mv = (s,e,a,b,m,l,r)=>({s:T(s),e:T(e),from:a,to:b,m,l,r});
+
+const SEGS = [
+  mv("2026-09-28T13:07-04:00","2026-09-28T14:40-04:00","rdu","phl","flight","Flying RDU → Philadelphia"),
+  at("2026-09-28T14:40-04:00","2026-09-28T17:45-04:00","phl","Connecting in Philadelphia"),
+  mv("2026-09-28T17:45-04:00","2026-09-29T07:35+02:00","phl","bcnAir","flight","Overnight flight to Barcelona"),
+  mv("2026-09-29T07:35+02:00","2026-09-29T09:00+02:00","bcnAir","jazz","ground","Airport → hotel to drop bags"),
+  at("2026-09-29T09:00+02:00","2026-10-03T09:00+02:00","jazz","Based in Barcelona"),
+  mv("2026-10-03T09:00+02:00","2026-10-03T17:00+02:00","jazz","moderno","ground","Train + bus to Madrid","bcn_mad"),
+  at("2026-10-03T17:00+02:00","2026-10-06T09:00+02:00","moderno","Based in Madrid"),
+  mv("2026-10-06T09:00+02:00","2026-10-06T16:00+02:00","moderno","anacapri","ground","Bus south to Granada","mad_gra"),
+  at("2026-10-06T16:00+02:00","2026-10-08T10:00+02:00","anacapri","Based in Granada"),
+  mv("2026-10-08T10:00+02:00","2026-10-08T14:00+02:00","anacapri","sohoronda","ground","Bus to Ronda","gra_ron"),
+  at("2026-10-08T14:00+02:00","2026-10-09T11:30+02:00","sohoronda","In Ronda"),
+  mv("2026-10-09T11:30+02:00","2026-10-09T14:00+02:00","sohoronda","donamaria","ground","Bus to Sevilla","ron_sev"),
+  at("2026-10-09T14:00+02:00","2026-10-11T10:00+02:00","donamaria","Based in Sevilla"),
+  mv("2026-10-11T10:00+02:00","2026-10-11T11:30+02:00","donamaria","posada","ground","Taxi to Alájar","sev_ala"),
+  at("2026-10-11T11:30+02:00","2026-10-15T09:30+02:00","posada","In the Sierra de Aracena"),
+  mv("2026-10-15T09:30+02:00","2026-10-15T11:00+02:00","posada","svq","ground","Taxi to Sevilla Airport","ala_svq"),
+  at("2026-10-15T11:00+02:00","2026-10-15T12:30+02:00","svq","At Sevilla Airport"),
+  mv("2026-10-15T12:30+02:00","2026-10-15T14:25+01:00","svq","lhr","flight","Flying to London"),
+  at("2026-10-15T14:25+01:00","2026-10-16T10:00+01:00","lhrHotel","Overnight at Heathrow"),
+  at("2026-10-16T10:00+01:00","2026-10-16T12:00+01:00","lhr","At Heathrow"),
+  mv("2026-10-16T12:00+01:00","2026-10-16T15:45-04:00","lhr","rdu","flight","Flying home to Raleigh")
+];
+
+const ACTS = [
+  at("2026-09-29T10:00+02:00","2026-09-29T13:30+02:00","gotic","Barri Gòtic walk"),
+  at("2026-09-29T13:30+02:00","2026-09-29T16:00+02:00","muhba","Barcelona History Museum"),
+  mv("2026-09-30T09:00+02:00","2026-09-30T10:30+02:00","jazz","montserrat","ground","Heading up to Montserrat","bcn_mon"),
+  at("2026-09-30T10:30+02:00","2026-09-30T16:00+02:00","montserrat","Montserrat day trip"),
+  mv("2026-09-30T16:00+02:00","2026-09-30T17:30+02:00","montserrat","jazz","ground","Back down to Barcelona","mon_bcn"),
+  at("2026-10-01T10:00+02:00","2026-10-01T12:30+02:00","picasso","Picasso Museum"),
+  at("2026-10-01T12:30+02:00","2026-10-01T14:30+02:00","rambla","Strolling La Rambla"),
+  at("2026-10-01T14:30+02:00","2026-10-01T16:30+02:00","raval","El Raval walk"),
+  at("2026-10-02T09:00+02:00","2026-10-02T11:00+02:00","pedrera","La Pedrera"),
+  at("2026-10-02T11:00+02:00","2026-10-02T12:30+02:00","batllo","Block of Discord"),
+  at("2026-10-02T13:30+02:00","2026-10-02T17:00+02:00","guell","Park Güell"),
+  at("2026-10-03T17:30+02:00","2026-10-03T20:00+02:00","sol","Exploring around Puerta del Sol"),
+  at("2026-10-04T10:00+02:00","2026-10-04T13:00+02:00","palacio","Royal Palace"),
+  at("2026-10-04T13:00+02:00","2026-10-04T14:15+02:00","mayor","Lunch near Plaza Mayor"),
+  at("2026-10-04T14:30+02:00","2026-10-04T18:00+02:00","retiro","Retiro Park"),
+  at("2026-10-05T13:30+02:00","2026-10-05T17:00+02:00","prado","The Prado"),
+  at("2026-10-06T18:30+02:00","2026-10-06T21:30+02:00","sannicolas","Dinner + Alhambra sunset"),
+  at("2026-10-07T14:30+02:00","2026-10-07T18:30+02:00","alhambra","The Alhambra"),
+  at("2026-10-08T14:00+02:00","2026-10-08T15:45+02:00","puente","Exploring Ronda's quarters"),
+  at("2026-10-08T16:00+02:00","2026-10-08T18:00+02:00","desfiladero","Desfiladero del Tajo hike"),
+  at("2026-10-08T19:00+02:00","2026-10-08T20:30+02:00","guitar","Ronda Guitar House concert"),
+  at("2026-10-09T19:00+02:00","2026-10-09T21:30+02:00","flamenco","Flamenco show"),
+  at("2026-10-10T09:30+02:00","2026-10-10T12:00+02:00","alcazar","Real Alcázar"),
+  at("2026-10-11T14:00+02:00","2026-10-11T17:00+02:00","arias","Guided walk: Peña de Arias Montano"),
+  mv("2026-10-12T09:30+02:00","2026-10-12T10:00+02:00","posada","almonaster","ground","Taxi to Almonaster","ala_alm"),
+  at("2026-10-12T10:00+02:00","2026-10-12T15:00+02:00","almonaster","Almonaster loop walk"),
+  mv("2026-10-12T15:00+02:00","2026-10-12T15:30+02:00","almonaster","posada","ground","Taxi back to Alájar","alm_ala"),
+  mv("2026-10-13T09:30+02:00","2026-10-13T10:00+02:00","posada","cortelazor","ground","Ride to Cortelazor","ala_cor"),
+  mv("2026-10-13T10:00+02:00","2026-10-13T14:30+02:00","cortelazor","posada","walk","Walking Cortelazor → Alájar","cor_ala"),
+  mv("2026-10-14T10:00+02:00","2026-10-14T12:30+02:00","posada","linares","walk","Walking to Linares de la Sierra","ala_lin"),
+  at("2026-10-14T12:30+02:00","2026-10-14T13:30+02:00","linares","Linares de la Sierra"),
+  mv("2026-10-14T13:30+02:00","2026-10-14T16:00+02:00","linares","posada","walk","Walking back to Alájar","lin_ala")
+];
+const MOVES = [...SEGS,...ACTS].filter(x=>x.from);
+
+const TICKETS = [
+  ["2026-10-01T10:00+02:00","Picasso Museum"],
+  ["2026-10-02T09:00+02:00","La Pedrera"],
+  ["2026-10-04T10:00+02:00","Royal Palace"],
+  ["2026-10-05T13:30+02:00","Prado"],
+  ["2026-10-07T14:30+02:00","Alhambra"],
+  ["2026-10-08T16:00+02:00","Desfiladero del Tajo trail"],
+  ["2026-10-08T19:00+02:00","Ronda Guitar House"],
+  ["2026-10-10T09:30+02:00","Real Alcázar"]
+].map(([s,n])=>({s:T(s),n}));
+
+const DAYS = [
+  {k:"2026-09-28",d:"Mon Sep 28",t:"2026-09-28T19:00-04:00",ttl:"Wheels up",night:"On the plane",stops:["rdu","phl"],
+   i:["Depart RDU 1:07 PM, connect in Philadelphia","Overnight flight to Barcelona"]},
+  {k:"2026-09-29",d:"Tue Sep 29",t:"2026-09-29T11:00+02:00",ttl:"¡Hola, Barcelona!",night:"Hotel Jazz",stops:["bcnAir","gotic","muhba"],
+   i:["Land 7:35 AM, drop bags at the hotel","Barri Gòtic walk","Barcelona History Museum"]},
+  {k:"2026-09-30",d:"Wed Sep 30",t:"2026-09-30T12:00+02:00",ttl:"Montserrat day trip",night:"Hotel Jazz",stops:["montserrat"],
+   i:["Mountain monastery & the Black Madonna"]},
+  {k:"2026-10-01",d:"Thu Oct 1",t:"2026-10-01T10:30+02:00",ttl:"Picasso & the Ramblas",night:"Hotel Jazz",stops:["picasso","rambla","raval"],
+   i:["★ Picasso Museum 10:00 AM","La Rambla & El Raval walks","Tour meeting at the hotel (confirm time)"]},
+  {k:"2026-10-02",d:"Fri Oct 2",t:"2026-10-02T09:30+02:00",ttl:"Gaudí day",night:"Hotel Jazz",stops:["pedrera","batllo","guell"],
+   i:["★ La Pedrera 9:00 AM","Block of Discord","Park Güell"]},
+  {k:"2026-10-03",d:"Sat Oct 3",t:"2026-10-03T13:00+02:00",ttl:"On to Madrid",night:"Hotel Moderno",stops:["sol","mayor"],
+   i:["Train + bus, arrive ~5 PM","Puerta del Sol & Plaza Mayor"]},
+  {k:"2026-10-04",d:"Sun Oct 4",t:"2026-10-04T10:30+02:00",ttl:"Royal Madrid",night:"Hotel Moderno",stops:["palacio","retiro"],
+   i:["★ Royal Palace 10:00 AM","Retiro Park"]},
+  {k:"2026-10-05",d:"Mon Oct 5",t:"2026-10-05T14:00+02:00",ttl:"The Prado",night:"Hotel Moderno",stops:["prado"],
+   i:["★ Prado 1:30 PM"]},
+  {k:"2026-10-06",d:"Tue Oct 6",t:"2026-10-06T19:30+02:00",ttl:"South to Granada",night:"Hotel Anacapri",stops:["sannicolas"],
+   i:["Bus, arrive ~4 PM","Walk up for dinner + Alhambra sunset"]},
+  {k:"2026-10-07",d:"Wed Oct 7",t:"2026-10-07T15:00+02:00",ttl:"The Alhambra",night:"Hotel Anacapri",stops:["alhambra"],
+   i:["★ Alhambra 2:30 PM"]},
+  {k:"2026-10-08",d:"Thu Oct 8",t:"2026-10-08T16:30+02:00",ttl:"Ronda & the gorge",night:"Palacio San Gabriel",stops:["puente","desfiladero","guitar"],
+   i:["Bus, arrive ~2 PM","Moorish & Mercadillo quarters","★ Desfiladero trail 4:00 PM","★ Guitar House concert 7:00 PM"]},
+  {k:"2026-10-09",d:"Fri Oct 9",t:"2026-10-09T19:30+02:00",ttl:"Sevilla nights",night:"Hotel Doña María",stops:["flamenco","catedral"],
+   i:["Bus, arrive ~2 PM","Flamenco 7:00 or 8:30 PM — book ahead"]},
+  {k:"2026-10-10",d:"Sat Oct 10",t:"2026-10-10T10:00+02:00",ttl:"Real Alcázar",night:"Hotel Doña María",stops:["alcazar","catedral"],
+   i:["★ Real Alcázar 9:30 AM","Cathedral & Giralda (optional)"]},
+  {k:"2026-10-11",d:"Sun Oct 11",t:"2026-10-11T15:00+02:00",ttl:"Into the Sierra",night:"Posada San Marcos",stops:["posada","arias"],
+   i:["Taxi to Alájar, arrive ~11:30 AM","Guided walk 2:00 PM"]},
+  {k:"2026-10-12",d:"Mon Oct 12",t:"2026-10-12T11:00+02:00",ttl:"Almonaster la Real",night:"Posada San Marcos",stops:["almonaster"],
+   i:["Taxi out, loop walk, taxi back","Olive-oil tasting (confirm time)"]},
+  {k:"2026-10-13",d:"Tue Oct 13",t:"2026-10-13T12:00+02:00",ttl:"Cortelazor walk",night:"Posada San Marcos",stops:["cortelazor"],
+   i:["Ride out, walk back to Alájar"]},
+  {k:"2026-10-14",d:"Wed Oct 14",t:"2026-10-14T11:00+02:00",ttl:"Linares de la Sierra",night:"Posada San Marcos",stops:["linares"],
+   i:["Loop walk there and back"]},
+  {k:"2026-10-15",d:"Thu Oct 15",t:"2026-10-15T13:30+02:00",ttl:"Adiós → London",night:"Heathrow airport hotel",stops:["svq","lhrHotel"],
+   i:["Taxi to Sevilla Airport","Fly to London 12:30 PM, land 2:25 PM"]},
+  {k:"2026-10-16",d:"Fri Oct 16",t:"2026-10-16T13:00-04:00",ttl:"Home",night:"Home",stops:["lhr","rdu"],
+   i:["Depart Heathrow 12:00 PM, land RDU 3:45 PM"]}
+];
+DAYS.forEach(d=>{
+  d.tm=T(d.t);
+  d.guides=[...new Set(d.stops.map(s=>P[s].g).filter(Boolean))];
+  d.stops.forEach(s=>{ (P[s].when ||= []).push(d.d); });
+});
+
+const START = SEGS[0].s, END = SEGS[SEGS.length-1].e, ARRIVE = SEGS[2].e, TO_UK = T("2026-10-15T12:30+02:00");
+
+/* ---------------- Helpers ---------------- */
+const rad=x=>x*Math.PI/180, deg=x=>x*180/Math.PI;
+function gc(a,b,f){
+  const φ1=rad(a.lat),λ1=rad(a.lng),φ2=rad(b.lat),λ2=rad(b.lng);
+  const d=2*Math.asin(Math.sqrt(Math.sin((φ2-φ1)/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin((λ2-λ1)/2)**2));
+  if(d<1e-9) return {lat:a.lat,lng:a.lng};
+  const A=Math.sin((1-f)*d)/Math.sin(d), B=Math.sin(f*d)/Math.sin(d);
+  const x=A*Math.cos(φ1)*Math.cos(λ1)+B*Math.cos(φ2)*Math.cos(λ2);
+  const y=A*Math.cos(φ1)*Math.sin(λ1)+B*Math.cos(φ2)*Math.sin(λ2);
+  const z=A*Math.sin(φ1)+B*Math.sin(φ2);
+  return {lat:deg(Math.atan2(z,Math.hypot(x,y))),lng:deg(Math.atan2(y,x))};
+}
+function pdist(a,b){const x=(b.lng-a.lng)*Math.cos((a.lat+b.lat)*Math.PI/360),y=b.lat-a.lat;return Math.hypot(x,y)}
+function onShape(sh,f){
+  const seg=sh.slice(1).map((p,i)=>pdist(sh[i],p)), tot=seg.reduce((a,b)=>a+b,0);
+  let t=tot*Math.max(0,Math.min(1,f));
+  for(let i=0;i<seg.length;i++){ if(t<=seg[i]){const u=seg[i]?t/seg[i]:0;return {lat:sh[i].lat+(sh[i+1].lat-sh[i].lat)*u,lng:sh[i].lng+(sh[i+1].lng-sh[i].lng)*u}} t-=seg[i]; }
+  return sh[sh.length-1];
+}
+function shapeOf(m){
+  const a=P[m.from], b=P[m.to];
+  if(m.m==="flight") return Array.from({length:49},(_,i)=>gc(a,b,i/48));
+  if(m.r&&RS[m.r]) return RS[m.r];
+  return [{lat:a.lat,lng:a.lng},{lat:b.lat,lng:b.lng}];
+}
+const fmt=(ms,tz,o={})=>new Date(ms).toLocaleString("en-US",{timeZone:tz,hour:"numeric",minute:"2-digit",...o});
+const hourIn=(ms,tz)=>+new Date(ms).toLocaleString("en-US",{timeZone:tz,hour:"numeric",hour12:false})%24;
+const dateKey=(ms,tz)=>new Date(ms).toLocaleDateString("en-CA",{timeZone:tz});
+const dayKeyAt=ms=>ms<ARRIVE?"2026-09-28":dateKey(ms,ms>=TO_UK&&ms<END?UK:ms>=END?ET:ES);
+function dur(ms){
+  const m=Math.round(ms/60000), d=Math.floor(m/1440), h=Math.floor(m%1440/60), mm=m%60;
+  return d?`${d}d ${h}h`:h?`${h}h ${mm}m`:`${mm}m`;
+}
+const MODE_IC={flight:"✈️",ground:"🚌",walk:"🥾"};
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+
+function build(x,ms){
+  if(x.at){
+    const p=P[x.at], h=hourIn(ms,p.tz);
+    let sub;
+    if(p.k==="hotel" && (h>=23||h<7)) sub="Probably asleep 😴 · "+p.n;
+    else if(p.k==="hotel") sub="Free time · home base: "+p.n;
+    else sub=p.n+" · until "+fmt(x.e,p.tz);
+    return {lat:p.lat,lng:p.lng,label:x.l||p.n,sub,place:x.at,mode:"stay",key:x.l+x.s};
+  }
+  const a=P[x.from], b=P[x.to], f=Math.min(1,Math.max(0,(ms-x.s)/(x.e-x.s)));
+  const pos=x.m==="flight"?gc(a,b,f):onShape(shapeOf(x),f);
+  return {...pos,label:x.l,sub:`${Math.round(f*100)}% of the way · arrive ${fmt(x.e,b.tz,{weekday:"short"})} local`,
+    place:f<.5?x.from:x.to,mode:x.m,f,from:a,to:b,key:x.l+x.s};
+}
+function locate(ms){
+  for(const a of ACTS) if(ms>=a.s&&ms<a.e) return build(a,ms);
+  for(const s of SEGS) if(ms>=s.s&&ms<s.e) return build(s,ms);
+  const r=P.rdu;
+  if(ms<START) return {lat:r.lat,lng:r.lng,label:"Home in Raleigh",sub:"Wheels up in "+dur(START-ms),place:"rdu",mode:"pre",key:"pre"};
+  return {lat:r.lat,lng:r.lng,label:"Home sweet home",sub:"¡Hasta la próxima!",place:"rdu",mode:"post",key:"post"};
+}
+
+/* ---------------- Map ---------------- */
+const map=L.map("map",{zoomControl:true,worldCopyJump:true,tapTolerance:20,scrollWheelZoom:false}).setView([40.2,-3.7],6);
+map.on("click",()=>map.scrollWheelZoom.enable());
+const TILES=[
+  {name:"Street",url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",opt:{maxZoom:19,attribution:"Tiles &copy; Esri"}},
+  {name:"OSM",url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",opt:{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}}
+];
+const topo=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"});
+let street=null;
+function useTiles(i){
+  if(street) map.removeLayer(street);
+  let ok=0,bad=0;
+  street=L.tileLayer(TILES[i].url,TILES[i].opt).addTo(map);
+  street.on("tileload",()=>ok++);
+  street.on("tileerror",()=>{ bad++; if(!ok&&bad>=4&&i+1<TILES.length) useTiles(i+1); });
+  if(layerCtl){ layerCtl.remove(); }
+  layerCtl=L.control.layers({"Street map":street,"Terrain":topo},null,{position:"topright"}).addTo(map);
+}
+let layerCtl=null; useTiles(0);
+
+const routeLayer=L.layerGroup().addTo(map);
+function drawRoutes(ms){
+  routeLayer.clearLayers();
+  const done=MOVES.filter(m=>m.e<=ms), todo=MOVES.filter(m=>m.e>ms);
+  for(const [list,op] of [[done,.25],[todo,.85]]) for(const m of list){
+    const st=m.m==="flight"?{color:"#2f6f8f",weight:2.5,dashArray:"6 8"}:m.m==="walk"?{color:"#6b7a3a",weight:4,dashArray:"2 8"}:{color:"#c4512d",weight:4};
+    L.polyline(shapeOf(m).map(p=>[p.lat,p.lng]),{...st,opacity:op,interactive:false}).addTo(routeLayer);
+  }
+}
+
+function popHTML(k){
+  const p=P[k];
+  const facts=p.g?`<p>${p.f[0]}</p>`:`<ul style="padding-left:16px;margin:6px 0">${p.f.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  return `<div class="pop"><h3>${p.ic} ${p.n}</h3>${p.when?`<div class="when">${p.when.join(" · ")}</div>`:""}
+    ${facts}${p.tip?`<div class="tip">${p.tip}</div>`:""}
+    ${p.g?`<button onclick="openGuide('${p.g}','${k}')">📖 Read the guide</button>`:""}</div>`;
+}
+const popOpt=()=>({maxWidth:Math.min(290,window.innerWidth-90),autoPanPadding:[20,70]});
+const markers={};
+for(const k in P){
+  const p=P[k];
+  const icon=L.divIcon({className:"",html:`<div class="pin ${p.k}">${p.ic}</div>`,iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-14]});
+  markers[k]=L.marker([p.lat,p.lng],{icon}).addTo(map).bindPopup(popHTML(k),popOpt());
+}
+const meIcon=ic=>L.divIcon({className:"",html:`<div class="me"><div class="ring"></div><div class="dot">${ic}</div></div>`,iconSize:[44,44],iconAnchor:[22,22],popupAnchor:[0,-20]});
+const me=L.marker([P.rdu.lat,P.rdu.lng],{icon:meIcon("📍"),zIndexOffset:1000}).addTo(map);
+
+const bnds=keys=>L.latLngBounds(keys.map(k=>[P[k].lat,P[k].lng]));
+const spainBounds=bnds(["jazz","montserrat","moderno","anacapri","sohoronda","donamaria","posada","almonaster"]).pad(.12);
+const allBounds=L.latLngBounds(Object.values(P).map(p=>[p.lat,p.lng])).pad(.05);
+function remainingBounds(ms){
+  const loc=locate(ms), pts=[[loc.lat,loc.lng]];
+  [...SEGS,...ACTS].filter(x=>x.e>ms).forEach(x=>(x.at?[x.at]:[x.from,x.to]).forEach(k=>pts.push([P[k].lat,P[k].lng])));
+  return L.latLngBounds(pts).pad(.1);
+}
+
+/* ---------------- State ---------------- */
+let live=true, simMs=Date.now(), follow=true, lastKey=null, factBump=0, lastIc="", lastRouteBucket=null, lastDayRender=null;
+const openPast=new Set();
+const $=id=>document.getElementById(id);
+const nowMs=()=>live?Date.now():simMs;
+
+function frame(loc,force){
+  if(!follow && !force) return;
+  const fly=force||loc.key!==lastKey;
+  if(loc.mode==="pre"||loc.mode==="post"){ if(fly) map.flyToBounds(allBounds,{duration:1.2}); return; }
+  if(loc.from){
+    if(fly) map.flyToBounds(L.latLngBounds([[loc.from.lat,loc.from.lng],[loc.to.lat,loc.to.lng]]).pad(.25),{duration:1.2});
+    else map.panTo([loc.lat,loc.lng],{animate:true});
+    return;
+  }
+  const z=P[loc.place]&&P[loc.place].k==="air"?12:15;
+  if(fly) map.flyTo([loc.lat,loc.lng],z,{duration:1.2}); else map.panTo([loc.lat,loc.lng]);
+}
+
+function render(force){
+  const ms=nowMs(), loc=locate(ms);
+  const ic=MODE_IC[loc.mode]||(loc.mode==="pre"||loc.mode==="post"?"🏠":(P[loc.place]?.ic||"📍"));
+  if(ic!==lastIc){ me.setIcon(meIcon(ic)); lastIc=ic; }
+  me.setLatLng([loc.lat,loc.lng]);
+
+  $("lbl").textContent=ic+" "+loc.label;
+  $("sub").textContent=loc.sub;
+  const bar=$("bar");
+  if(loc.f!=null){ bar.style.display="block"; bar.firstElementChild.style.width=(loc.f*100)+"%"; } else bar.style.display="none";
+
+  const p=P[loc.place], fi=(Math.floor(ms/300000)+factBump)%p.f.length;
+  $("fact").innerHTML=`<small>Did you know · ${p.n}</small>${p.f[fi]}
+    <div class="links">${p.g?`<a onclick="openGuide('${p.g}','${p.id}')">📖 Read the full guide →</a>`:""}${p.f.length>1?`<a onclick="factBump++;render()">🔀 Another fact</a>`:""}</div>`;
+  me.bindPopup(`<div class="pop"><h3>${ic} ${loc.label}</h3><div class="when">${loc.sub}</div><p>${p.f[fi]}</p>${p.g?`<button onclick="openGuide('${p.g}','${p.id}')">📖 Read the guide</button>`:""}</div>`,popOpt());
+
+  const nt=TICKETS.find(t=>t.s>ms);
+  $("next").textContent=nt?`🎟 Next timed entry: ${nt.n} — ${fmt(nt.s,ES,{weekday:"short"})} (in ${dur(nt.s-ms)})`:"🎟 No more timed entries.";
+
+  const showUK=ms>=TO_UK&&ms<END;
+  $("clocks").innerHTML=`<span>🇺🇸 Home <b>${fmt(ms,ET,{weekday:"short"})}</b></span><span>🇪🇸 Spain <b>${fmt(ms,ES,{weekday:"short"})}</b></span>`+
+    (showUK?`<span>🇬🇧 London <b>${fmt(ms,UK,{weekday:"short"})}</b></span>`:"");
+
+  $("preview").classList.toggle("on",!live);
+  $("previewT").textContent="👀 Previewing "+fmt(ms,ES,{weekday:"short",month:"short",day:"numeric"});
+  $("bLive").classList.toggle("primary",!live);
+
+  const bucket=Math.floor(ms/600000);
+  if(bucket!==lastRouteBucket){ drawRoutes(ms); lastRouteBucket=bucket; }
+  const todayKey=dayKeyAt(Date.now()), viewKey=dayKeyAt(ms), sig=todayKey+"|"+viewKey+"|"+[...openPast].join();
+  if(sig!==lastDayRender){ renderDays(todayKey,viewKey); renderLearn(todayKey); lastDayRender=sig; }
+
+  frame(loc,force);
+  lastKey=loc.key;
+}
+
+/* ---------------- Lists ---------------- */
+function renderDays(todayKey,viewKey){
+  const box=$("days"); box.innerHTML="";
+  const tripOver=Date.now()>=END;
+  DAYS.forEach(d=>{
+    const past=tripOver||d.k<todayKey, today=d.k===todayKey&&!tripOver;
+    const el=document.createElement("div");
+    el.className="day"+(past?" past":"")+(today?" on":"")+(past&&openPast.has(d.k)?" open":"")+(!live&&d.k===viewKey?" viewing":"");
+    el.innerHTML=`<div class="top"><span class="ttl">${d.ttl}${today?'<span class="tag">Today</span>':""}</span><span class="d">${d.d}</span></div>
+      <div class="body"><ul>${d.i.map(x=>`<li>${x}</li>`).join("")}</ul>
+      <div class="night">🛏 ${d.night}</div>
+      ${d.guides.length?`<div class="chips">${d.guides.map(g=>`<button class="chip" data-g="${g}">📖 ${G[g].title}</button>`).join("")}</div>`:""}</div>`;
+    el.onclick=e=>{
+      const chip=e.target.closest(".chip");
+      if(chip){ e.stopPropagation(); openGuide(chip.dataset.g); return; }
+      if(past){ openPast.has(d.k)?openPast.delete(d.k):openPast.add(d.k); }
+      if(today){ live=true; } else { live=false; simMs=d.tm; }
+      follow=true; lastDayRender=null; lastRouteBucket=null; render(true);
+      $("map").scrollIntoView({behavior:"smooth",block:"center"});
+    };
+    box.appendChild(el);
+  });
+}
+
+const GUIDE_ORDER=Object.keys(G);
+function renderLearn(todayKey){
+  const tripOver=Date.now()>=END;
+  const info=GUIDE_ORDER.map(g=>{
+    const ds=DAYS.filter(d=>d.guides.includes(g));
+    const first=ds[0]?.k||"9999", last=ds[ds.length-1]?.k||"0000";
+    const st=tripOver||last<todayKey?"done":ds.some(d=>d.k===todayKey)?"now":"next";
+    return {g,first,st,label:ds.map(d=>d.d.replace(/^\w+ /,"")).join(", ")};
+  });
+  const rank={now:0,next:1,done:2};
+  info.sort((a,b)=>rank[a.st]-rank[b.st]||a.first.localeCompare(b.first));
+  const box=$("learn"); box.innerHTML="";
+  info.forEach(x=>{
+    const el=document.createElement("div");
+    el.className="learn"+(x.st==="now"?" now":x.st==="done"?" done":"");
+    el.innerHTML=`<div><b>${G[x.g].title}</b><small>${G[x.g].place} · ${x.st==="now"?"Today":x.st==="done"?"Visited":x.label}</small></div><span class="go">›</span>`;
+    el.onclick=()=>openGuide(x.g);
+    box.appendChild(el);
+  });
+}
+
+/* ---------------- Reading panel ---------------- */
+let gTarget=null;
+function openGuide(g,k){
+  const gd=G[g]; if(!gd) return;
+  k=k||GUIDE_AT[g]; const p=P[k];
+  const facts=[...new Set([...(p?.g===g?p.f:[]),...Object.values(P).filter(q=>q.g===g&&q!==p).flatMap(q=>q.f)])].slice(0,8);
+  $("gPlace").textContent=gd.place;
+  $("gTitle").textContent=gd.title;
+  $("gBody").innerHTML=gd.paragraphs.map(x=>`<p>${x}</p>`).join("")+
+    (facts.length?`<h4>Quick facts</h4><ul>${facts.map(f=>`<li>${f}</li>`).join("")}</ul>`:"")+
+    (p?.tip?`<div class="tip">💡 ${p.tip}</div>`:"")+
+    (p?`<div class="addr">📍 ${p.n} · ${p.a}</div>`:"");
+  gTarget=k;
+  const q=encodeURIComponent(p?`${p.n}, ${p.a}`:gd.title);
+  $("gMaps").href=isIOS?`https://maps.apple.com/?q=${q}&ll=${p.lat},${p.lng}`:`https://www.google.com/maps/search/?api=1&query=${q}`;
+  $("gBody").scrollTop=0;
+  map.closePopup();
+  $("guide").showModal();
+}
+window.openGuide=openGuide;
+$("gClose").onclick=()=>$("guide").close();
+$("guide").addEventListener("click",e=>{ if(e.target===$("guide")) $("guide").close(); });
+$("gShow").onclick=()=>{
+  $("guide").close();
+  if(!gTarget) return;
+  follow=false;
+  $("map").scrollIntoView({behavior:"smooth",block:"center"});
+  map.flyTo([P[gTarget].lat,P[gTarget].lng],15,{duration:1});
+  setTimeout(()=>markers[gTarget].openPopup(),1100);
+};
+
+/* ---------------- Controls ---------------- */
+function goLive(){ live=true; follow=true; lastDayRender=null; lastRouteBucket=null; render(true); }
+$("bLive").onclick=goLive;
+$("bBack").onclick=goLive;
+$("bMe").onclick=()=>{ follow=true; $("map").scrollIntoView({behavior:"smooth",block:"center"}); render(true); setTimeout(()=>me.openPopup(),1300); };
+$("bSpain").onclick=()=>{ follow=false; map.flyToBounds(spainBounds,{duration:1}); };
+$("bRem").onclick=()=>{ follow=false; map.flyToBounds(remainingBounds(nowMs()),{duration:1}); };
+$("bAll").onclick=()=>{ follow=false; map.flyToBounds(allBounds,{duration:1}); };
+map.on("dragstart",()=>{ follow=false; });
+window.addEventListener("resize",()=>map.invalidateSize());
+window.addEventListener("orientationchange",()=>setTimeout(()=>map.invalidateSize(),300));
+
+let gpsDot=null;
+$("bGps").onclick=()=>{
+  if(!navigator.geolocation||!window.isSecureContext){ $("sub").textContent="GPS needs the page opened from an https link (e.g. GitHub Pages)."; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const ll=[pos.coords.latitude,pos.coords.longitude];
+    if(gpsDot) gpsDot.setLatLng(ll);
+    else gpsDot=L.circleMarker(ll,{radius:9,color:"#fff",weight:3,fillColor:"#2a7de1",fillOpacity:1}).addTo(map).bindPopup("🛰 Your actual GPS position");
+    follow=false; map.flyTo(ll,15); gpsDot.openPopup();
+  },()=>{ $("sub").textContent="Couldn't get GPS — location permission may be off for this page."; },{enableHighAccuracy:true,timeout:10000});
+};
+
+render(true);
+setInterval(()=>{ if(live) render(); },20000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&live) render(); });
+</script>
+</body>
+</html>
